@@ -30,7 +30,7 @@ Usage
 ============================
 For the visualization of the initial model, run:
 ```
-python smplifyx/demo.py --pkl models/smplx/SMPLX_NEUTRAL.npz --config cfg_files/fit_smplx.yaml
+python smplifyx/demo.py --pkl models/smplx/SMPLX_NEUTRAL.pkl --config cfg_files/fit_smplx.yaml
 ```
 
 Citation	<br>
