@@ -9,7 +9,7 @@ First, clone this repo and install dependencies:
 cd Initial_Model_Visualization
 pip install -r requirements.txt
 ```
-Then you need to prepare the SMPL model files in smplx/models. The final directory structure should look like this:	<br>
+Then prepare the SMPLX model files in smplx/models. The final directory structure should look like this:	<br>
 ```
 smplx
 └── models
