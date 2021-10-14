@@ -1,2 +1,2 @@
-#SMPL-X model Visualization 
+SMPL-X model Visualization 
 
