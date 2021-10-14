@@ -4,3 +4,4 @@ pyrender
 pyaml
 configer
 configargparse
+torch
