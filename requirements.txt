@@ -1,0 +1,6 @@
+smplx
+trimesh
+pyrender
+pyaml
+configer
+configargparse
