@@ -1,9 +1,14 @@
 SMPL-X model Visualization
 ============================
+Tested with PyTorch 1.7.0 on Ubuntu 20.04, CUDA 11.0.
+
 Installation
 ============================
 First, clone this repo and install dependencies:
-
+```
+cd Initial_Model_Visualization
+pip install -r requirements.txt
+```
 The final directory structure should look like this:	<br>
 ```
 smplx
@@ -18,6 +23,7 @@ smplx
 └── smplifyx
 	├── demo.py
 	└── cmd_parser.py
+└──README.md	
 ```
 
 Usage
