@@ -1,10 +1,10 @@
-SMPL-X model Visualization <br>
+SMPL-X model Visualization
 ============================
 Installation
 ============================
 First, clone this repo and install dependencies:
 
-The final directory structure should look like this:
+The final directory structure should look like this:	<br>
 ```
 smplx
 └── models
@@ -12,16 +12,20 @@ smplx
 		├── SMPLX_FEMALE.npz
 		├── SMPLX_FEMALE.pkl
         	├── SMPLX_MALE.npz
-		├── SMPLX_FEMALE.pkl
-        	├──SMPLX_NEUTRAL.npz
-		└── SMPLX_FEMALE.pkl
-└── smplify
+		├── SMPLX_MALE.pkl
+        	├── SMPLX_NEUTRAL.npz
+		└── SMPLX_NEUTRAL.pkl
+└── smplifyx
 	├── demo.py
-	└── 
-
+	└── cmd_parser.py
 ```
 
-
+Usage
+============================
+For the visualization of the initial model, run:
+```
+python smplifyx/demo.py --pkl models/smplx/SMPLX_NEUTRAL.npz --config cfg_files/fit_smplx.yaml
+```
 
 Citation	<br>
 ============================
