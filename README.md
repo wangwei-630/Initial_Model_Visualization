@@ -1,4 +1,4 @@
-SMPL-X model Visualization
+Initial Model Visualization
 ============================
 Tested with PyTorch 1.7.0 on Ubuntu 20.04, CUDA 11.0.
 
@@ -9,7 +9,7 @@ First, clone this repo and install dependencies:
 cd Initial_Model_Visualization
 pip install -r requirements.txt
 ```
-The final directory structure should look like this:	<br>
+Then you need to prepare the SMPL model files in smplx/models. \The final directory structure should look like this:	<br>
 ```
 smplx
 └── models
