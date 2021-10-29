@@ -1,128 +1,142 @@
+# -*- coding: utf-8 -*-
+
+# Max-Planck-Gesellschaft zur Förderung der Wissenschaften e.V. (MPG) is
+# holder of all proprietary rights on this computer program.
+# You can only use this computer program if you have closed
+# a license agreement with MPG or you get the right to use the computer
+# program from someone who is authorized to grant you that right.
+# Any use of the computer program without a valid license is prohibited and
+# liable to prosecution.
+#
+# Copyright©2019 Max-Planck-Gesellschaft zur Förderung
+# der Wissenschaften e.V. (MPG). acting on behalf of its Max Planck Institute
+# for Intelligent Systems. All rights reserved.
+#
+# Contact: ps-license@tuebingen.mpg.de
+
+import os.path as osp
 import argparse
-import pickle
-import torch
-import smplx
+
 import numpy as np
+import torch
 
-from os import path as osp
-from cmd_parser import parse_config
+import smplx
 
-import pyrender
-import trimesh
+
+def main(model_folder,
+         model_type='smplx',
+         ext='npz',
+         gender='neutral',
+         plot_joints=False,
+         num_betas=10,
+         sample_shape=True,
+         sample_expression=True,
+         num_expression_coeffs=10,
+         plotting_module='pyrender',
+         use_face_contour=False):
+
+    model = smplx.create(model_folder, model_type=model_type,
+                         gender=gender, use_face_contour=use_face_contour,
+                         num_betas=num_betas,
+                         num_expression_coeffs=num_expression_coeffs,
+                         ext=ext)
+    print(model)
+
+    betas, expression = None, None
+    if sample_shape:
+        betas = torch.randn([1, model.num_betas], dtype=torch.float32)
+    if sample_expression:
+        expression = torch.randn(
+            [1, model.num_expression_coeffs], dtype=torch.float32)
+
+    output = model(betas=betas, expression=expression,
+                   return_verts=True)
+    vertices = output.vertices.detach().cpu().numpy().squeeze()
+    joints = output.joints.detach().cpu().numpy().squeeze()
+
+    print('Vertices shape =', vertices.shape)
+    print('Joints shape =', joints.shape)
+
+    if plotting_module == 'pyrender':
+        import pyrender
+        import trimesh
+        vertex_colors = np.ones([vertices.shape[0], 4]) * [0.3, 0.3, 0.3, 0.8]
+        tri_mesh = trimesh.Trimesh(vertices, model.faces,
+                                   vertex_colors=vertex_colors)
+
+        mesh = pyrender.Mesh.from_trimesh(tri_mesh)
+
+        scene = pyrender.Scene()
+        scene.add(mesh)
+
+        if plot_joints:
+            sm = trimesh.creation.uv_sphere(radius=0.005)
+            sm.visual.vertex_colors = [0.9, 0.1, 0.1, 1.0]
+            tfs = np.tile(np.eye(4), (len(joints), 1, 1))
+            tfs[:, :3, 3] = joints
+            joints_pcl = pyrender.Mesh.from_trimesh(sm, poses=tfs)
+            scene.add(joints_pcl)
+
+        pyrender.Viewer(scene, use_raymond_lighting=True)
+
 
 
 if __name__ == '__main__':
-    '''debug查看smplx参数'''
-    # models_dir = '../models'
-    # bm_fname =  osp.join(models_dir,'smplx/SMPLX_NEUTRAL.npz')#'PATH_TO_SMPLX_model.pkl'  obtain from https://smpl-x.is.tue.mpg.de/downloads
-    # smplx_dict = np.load(bm_fname, encoding='latin1')
+    parser = argparse.ArgumentParser(description='SMPL-X Demo')
 
+    parser.add_argument('--model-folder', required=True, type=str,
+                        help='The path to the model folder')
+    parser.add_argument('--model-type', default='smplx', type=str,
+                        choices=['smpl', 'smplh', 'smplx', 'mano', 'flame'],
+                        help='The type of model to load')
+    parser.add_argument('--gender', type=str, default='neutral',
+                        help='The gender of the model')
+    parser.add_argument('--num-betas', default=10, type=int,
+                        dest='num_betas',
+                        help='Number of shape coefficients.')
+    parser.add_argument('--num-expression-coeffs', default=10, type=int,
+                        dest='num_expression_coeffs',
+                        help='Number of expression coefficients.')
+    parser.add_argument('--plotting-module', type=str, default='pyrender',
+                        dest='plotting_module',
+                        choices=['pyrender', 'matplotlib', 'open3d'],
+                        help='The module to use for plotting the result')
+    parser.add_argument('--ext', type=str, default='npz',
+                        help='Which extension to use for loading')
+    parser.add_argument('--plot-joints', default=False,
+                        type=lambda arg: arg.lower() in ['true', '1'],
+                        help='The path to the model folder')
+    parser.add_argument('--sample-shape', default=True,
+                        dest='sample_shape',
+                        type=lambda arg: arg.lower() in ['true', '1'],
+                        help='Sample a random shape')
+    parser.add_argument('--sample-expression', default=True,
+                        dest='sample_expression',
+                        type=lambda arg: arg.lower() in ['true', '1'],
+                        help='Sample a random expression')
+    parser.add_argument('--use-face-contour', default=False,
+                        type=lambda arg: arg.lower() in ['true', '1'],
+                        help='Compute the contour of the face')
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--pkl', nargs='+', type=str, required=True,
-                        help='The pkl files that will be read')
+    args = parser.parse_args()
 
-    args, remaining = parser.parse_known_args()
-    pkl_paths = args.pkl
-    args = parse_config(remaining)
-    # print('args:', args.keys())
-    # ['data_folder', 'max_persons', 'config', 'loss_type', 'interactive', 'save_meshes', 'visualize', 'degrees',
-    #  'use_cuda', 'dataset', 'joints_to_ign', 'output_folder', 'img_folder', 'keyp_folder', 'summary_folder',
-    #  'result_folder', 'mesh_folder', 'gender_lbl_type', 'gender', 'float_dtype', 'model_type', 'camera_type',
-    #  'optim_jaw', 'optim_hands', 'optim_expression', 'optim_shape', 'model_folder', 'use_joints_conf', 'batch_size',
-    #  'num_gaussians', 'use_pca', 'num_pca_comps', 'flat_hand_mean', 'body_prior_type', 'left_hand_prior_type',
-    #  'right_hand_prior_type', 'jaw_prior_type', 'use_vposer', 'vposer_ckpt', 'init_joints_idxs', 'body_tri_idxs',
-    #  'prior_folder', 'focal_length', 'rho', 'interpenetration', 'penalize_outside', 'data_weights',
-    #  'body_pose_prior_weights', 'shape_weights', 'expr_weights', 'face_joints_weights', 'hand_joints_weights',
-    #  'jaw_pose_prior_weights', 'hand_pose_prior_weights', 'coll_loss_weights', 'depth_loss_weight', 'df_cone_height',
-    #  'max_collisions', 'point2plane', 'part_segm_fn', 'ign_part_pairs', 'use_hands', 'use_face', 'use_face_contour',
-    #  'side_view_thsh', 'optim_type', 'lr', 'gtol', 'ftol', 'maxiters']
+    model_folder = osp.expanduser(osp.expandvars(args.model_folder))
+    model_type = args.model_type
+    plot_joints = args.plot_joints
+    use_face_contour = args.use_face_contour
+    gender = args.gender
+    ext = args.ext
+    plotting_module = args.plotting_module
+    num_betas = args.num_betas
+    num_expression_coeffs = args.num_expression_coeffs
+    sample_shape = args.sample_shape
+    sample_expression = args.sample_expression
 
-    dtype = torch.float32
-    use_cuda = args.get('use_cuda', True)
-    if use_cuda and torch.cuda.is_available():
-        device = torch.device('cuda')
-    else:
-        device = torch.device('cpu')
-
-    model_type = args.get('model_type', 'smplx')
-    print('Model type:', model_type)
-    print('Model folder:', args.get('model_folder'))
-
-    model_params = dict(model_path=args.get('model_folder'),
-                        #  joint_mapper=joint_mapper,
-                        create_global_orient=True,
-                        create_body_pose=not args.get('use_vposer'),
-                        create_betas=True,
-                        create_left_hand_pose=True,
-                        create_right_hand_pose=True,
-                        create_expression=True,
-                        create_jaw_pose=True,
-                        create_leye_pose=True,
-                        create_reye_pose=True,
-                        create_transl=False,
-                        dtype=dtype,
-                        **args)
-
-    model = smplx.create(**model_params)
-    model = model.to(device=device)
-
-    '''load SMPLX_NEUTRAL.pkl'''
-    for pkl_path in pkl_paths:
-        with open(pkl_path, 'rb') as f:
-            data = pickle.load(f, encoding='latin1')
-            print("------------>>>>>>>>>>>>>>----------------")
-            print('data.keys:', data.keys())
-            '''
-            data.keys：
-            ['dynamic_lmk_bary_coords', 
-            'hands_componentsl', 
-            'ft', 
-            'lmk_faces_idx', 
-            'f', 
-            'J_regressor', 
-            'hands_componentsr', 
-            'kintree_table', 
-            'hands_coeffsr', 
-            'joint2num', 
-            'hands_meanl', 
-            'lmk_bary_coords', 
-            'weights', 
-            'posedirs', 
-            'dynamic_lmk_faces_idx', 
-            'part2num', 
-            'vt', 
-            'hands_meanr', 
-            'hands_coeffsl', 
-            'v_template', 
-            'shapedirs']
-            '''
-            print("------------>>>>>>>>>>>>>>----------------")
-
-        '''SMPLX_NEUTRAL.pkl -> tensor'''
-        est_params = {}
-        for key, val in data.items():
-            print(key)
-            if key == "ft" or key == "f":
-                val = val/1.0   #can't convert np.ndarray of type numpy.uint32
-            elif key == "joint2num" or key == "part2num":
-                continue    #can't convert np.ndarray of type numpy.object_.
-            est_params[key] = torch.tensor(val, dtype=dtype, device=device)
-
-        '''output 3D model'''
-        model_output = model(**est_params)
-        vertices = model_output.vertices.detach().cpu().numpy().squeeze()
-
-        out_mesh = trimesh.Trimesh(vertices, model.faces, process=False)
-        material = pyrender.MetallicRoughnessMaterial(
-            metallicFactor=0.0,
-            alphaMode='OPAQUE',
-            baseColorFactor=(1.0, 1.0, 0.9, 1.0))
-        mesh = pyrender.Mesh.from_trimesh(
-            out_mesh,
-            material=material)
-
-        scene = pyrender.Scene(bg_color=[0.0, 0.0, 0.0, 0.0],
-                               ambient_light=(0.3, 0.3, 0.3))
-        scene.add(mesh, 'mesh')
-        pyrender.Viewer(scene, use_raymond_lighting=True)
+    main(model_folder, model_type, ext=ext,
+         gender=gender, plot_joints=plot_joints,
+         num_betas=num_betas,
+         num_expression_coeffs=num_expression_coeffs,
+         sample_shape=sample_shape,
+         sample_expression=sample_expression,
+         plotting_module=plotting_module,
+         use_face_contour=use_face_contour)
