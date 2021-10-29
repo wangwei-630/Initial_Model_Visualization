@@ -30,12 +30,11 @@ Usage
 ============================
 For the visualization of the initial model, run:
 ```
-python smplifyx/demo.py --pkl models/smplx/SMPLX_NEUTRAL.pkl --config cfg_files/fit_smplx.yaml
+python smplifyx/demo.py --model-folder models/smplx/SMPLX_NEUTRAL.npz --plot-joints=True --gender="neutral"
 ```
 
 Citation	<br>
 ============================
-If you find this Model & Software useful in your research we would kindly ask you to cite:	<br>
 ```
 @inproceedings{SMPL-X:2019,
   title = {Expressive Body Capture: 3D Hands, Face, and Body from a Single Image},
