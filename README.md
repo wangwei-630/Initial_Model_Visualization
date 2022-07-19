@@ -6,6 +6,9 @@ Installation
 ============================
 First, clone this repo and install dependencies:
 ```
+conda create -n smplify-x python=3.7
+conda activate smplify-x
+conda install pytorch==1.7.0 torchvision==0.8.0 torchaudio==0.7.0 cudatoolkit=10.1 -c pytorch
 cd Initial_Model_Visualization
 pip install -r requirements.txt
 ```
